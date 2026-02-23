@@ -9,6 +9,7 @@ label { display: block; font-size: 14px; }
 input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #ddd; margin-top: 6px; }
 button { padding: 10px 14px; border: 0; border-radius: 10px; cursor: pointer; background: #111; color: #fff; }
 button.secondary { background: #e9ecf5; color: #111; }
+button:disabled { opacity: .55; cursor: not-allowed; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .row.wrap { flex-wrap: wrap; justify-content: flex-start; }
 .muted { color: #555; }
