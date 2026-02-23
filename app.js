@@ -1,6 +1,6 @@
 // ====== CONFIGURAÇÃO ======
 // 1) URL do seu "backend" (Google Apps Script). Você vai colar depois.
-const API_URL = ""; // ex: "https://script.google.com/macros/s/XXXX/exec"
+const API_URL = "https://script.google.com/macros/s/AKfycbxZjCTcP4yBNgMVVukHBeTlmMryUKSQP2p3ZIkMs5JyOR9uS2bd7QoEsqSyCeAddDQP/exec"; // ex: "https://script.google.com/macros/s/XXXX/exec"
 
 // 2) Onde está o JSON do mês
 const DATA_URL = "data/marco_2026_sobreaviso.json";
