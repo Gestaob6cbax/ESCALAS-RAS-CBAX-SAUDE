@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Escala RAS - Vagas de Sobreaviso</title>
-  <link rel="stylesheet" href="styles.css" />
-  <!-- Biblioteca para gerar Excel no navegador -->
+  <title>Escala RAS — Vagas de Sobreaviso</title>
+  <link rel="stylesheet" href="styles.css?v=3" />
+  <!-- Excel no navegador -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -20,7 +20,7 @@
       <div class="grid2">
         <label>
           Matrícula
-          <input id="matricula" inputmode="numeric" placeholder="Ex: 42871" />
+          <input id="matricula" inputmode="numeric" placeholder="Ex: 30919" />
         </label>
         <label>
           PIN
@@ -64,6 +64,7 @@
     <p class="muted small">v1 — GitHub Pages + Planilha</p>
   </footer>
 
-  <script src="app.js"></script>
+  <!-- cache-buster no JS -->
+  <script src="app.js?v=3"></script>
 </body>
 </html>
