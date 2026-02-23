@@ -4,46 +4,31 @@ const API_URL =
 
 const DATA_URL = "data/marco_2026_sobreaviso.json";
 
-// fallback local (só usado se API_URL estiver vazio)
-const PIN_FALLBACK = {
-  "42871": "1234",
-};
-
 // ====== ESTADO ======
 let session = null; // { matricula, nome, perfil }
-let dadosMes = null; // JSON do mês
-let minhas = []; // escolhas do usuário (vindas da planilha e/ou local)
+let dadosMes = null;
+let minhas = [];
 
 // ====== HELPERS ======
 const $ = (id) => document.getElementById(id);
 
-function setMsg(el, msg) {
-  el.textContent = msg || "";
-}
+function setMsg(el, msg) { el.textContent = msg || ""; }
 
 function isVaga(item) {
-  return String(item.status_sobreaviso || "")
-    .trim()
-    .toUpperCase() === "VAGA";
-}
-
-function chaveEscolha(e) {
-  // chave simples para deduplicar (matricula + data)
-  return `${session?.matricula || ""}__${String(e.data || "").trim()}`;
-}
-
-function jaEscolheuData(dataISO) {
-  const d = String(dataISO || "").trim();
-  return minhas.some((e) => String(e.data || "").trim() === d);
+  return String(item.status_sobreaviso || "").trim().toUpperCase() === "VAGA";
 }
 
 function sortPorData(arr) {
   return [...arr].sort((a, b) => String(a.data).localeCompare(String(b.data)));
 }
 
-async function apiGet(params) {
-  const url = `${API_URL}?${params}`;
-  const r = await fetch(url, { cache: "no-store" });
+function jaEscolheuData(dataISO) {
+  const d = String(dataISO || "").trim();
+  return minhas.some(e => String(e.data || "").trim() === d);
+}
+
+async function apiGet(qs) {
+  const r = await fetch(`${API_URL}?${qs}`, { cache: "no-store" });
   return await r.json();
 }
 
@@ -54,12 +39,11 @@ async function apiPost(obj) {
     body: JSON.stringify(obj),
   });
 
-  // se o Apps Script retornar HTML por algum motivo, isso evita quebrar silencioso
   const txt = await r.text();
   try {
     return JSON.parse(txt);
   } catch {
-    return { ok: false, error: "Resposta não-JSON do servidor.", raw: txt };
+    return { ok: false, error: "Servidor retornou resposta inválida.", raw: txt };
   }
 }
 
@@ -68,8 +52,7 @@ function renderVagas(lista) {
   const root = $("listaVagas");
   root.innerHTML = "";
 
-  const vagas = lista.filter(isVaga);
-
+  const vagas = (lista || []).filter(isVaga);
   if (vagas.length === 0) {
     root.innerHTML = `<div class="item"><h4>Sem vagas</h4><p class="muted small">Nenhuma vaga disponível no período.</p></div>`;
     return;
@@ -88,9 +71,7 @@ function renderVagas(lista) {
         ${escolhido ? "Já selecionado" : "Selecionar esta vaga"}
       </button>
     `;
-
-    const btn = div.querySelector("button");
-    btn.addEventListener("click", () => escolherVaga(v));
+    div.querySelector("button").addEventListener("click", () => escolherVaga(v));
     root.appendChild(div);
   }
 }
@@ -131,41 +112,42 @@ async function carregarMes() {
   }
 }
 
+async function carregarMinhas() {
+  if (!session) return;
+  const j = await apiGet(`action=minhas&matricula=${encodeURIComponent(session.matricula)}`);
+  if (!j.ok) {
+    alert("Erro ao carregar suas escolhas: " + (j.error || "erro"));
+    return;
+  }
+  minhas = j.itens || [];
+  renderMinhas();
+  if (dadosMes?.itens) renderVagas(dadosMes.itens);
+}
+
 // ====== LOGIN ======
 $("btnLogin").addEventListener("click", async () => {
   const matricula = $("matricula").value.trim();
   const pin = $("pin").value.trim();
 
-  if (!matricula || !pin) {
-    return setMsg($("loginMsg"), "Informe matrícula e PIN.");
+  if (!matricula || !pin) return setMsg($("loginMsg"), "Informe matrícula e PIN.");
+
+  try {
+    const j = await apiGet(
+      `action=login&matricula=${encodeURIComponent(matricula)}&pin=${encodeURIComponent(pin)}`
+    );
+    if (!j.ok) return setMsg($("loginMsg"), j.error || "Falha no login.");
+
+    session = { matricula, nome: j.nome || matricula, perfil: j.perfil || "MILITAR" };
+
+    $("loginCard").classList.add("hidden");
+    $("appCard").classList.remove("hidden");
+    $("welcome").textContent = `Bem-vindo(a), ${session.nome} (${session.matricula})`;
+    setMsg($("loginMsg"), "");
+
+    await carregarMinhas(); // já puxa as escolhas da planilha
+  } catch (e) {
+    setMsg($("loginMsg"), "Erro ao conectar no servidor. Tente novamente.");
   }
-
-  // Se tiver API, valida na planilha; senão fallback
-  if (API_URL) {
-    try {
-      const j = await apiGet(
-        `action=login&matricula=${encodeURIComponent(matricula)}&pin=${encodeURIComponent(pin)}`
-      );
-      if (!j.ok) return setMsg($("loginMsg"), j.error || "Falha no login.");
-
-      session = { matricula, nome: j.nome || matricula, perfil: j.perfil || "MILITAR" };
-    } catch (e) {
-      return setMsg($("loginMsg"), "Erro ao conectar no servidor. Tente novamente.");
-    }
-  } else {
-    const ok = PIN_FALLBACK[matricula] && PIN_FALLBACK[matricula] === pin;
-    if (!ok) return setMsg($("loginMsg"), "PIN inválido (modo local).");
-    session = { matricula, nome: matricula, perfil: "MILITAR" };
-  }
-
-  // entrou
-  $("loginCard").classList.add("hidden");
-  $("appCard").classList.remove("hidden");
-  $("welcome").textContent = `Bem-vindo(a), ${session.nome} (${session.matricula})`;
-  setMsg($("loginMsg"), "");
-
-  // carrega automaticamente as escolhas do militar (se API ativa)
-  await carregarMinhas();
 });
 
 // Sair
@@ -178,7 +160,6 @@ $("btnSair").addEventListener("click", () => {
   $("loginCard").classList.remove("hidden");
   $("matricula").value = "";
   $("pin").value = "";
-
   $("listaVagas").innerHTML = "";
   $("listaMinhas").innerHTML = "";
   setMsg($("status"), "");
@@ -187,29 +168,7 @@ $("btnSair").addEventListener("click", () => {
 
 // Botões
 $("btnCarregar").addEventListener("click", carregarMes);
-
-$("btnMinhas").addEventListener("click", async () => {
-  await carregarMinhas();
-});
-
-// ====== MINHAS ESCOLHAS (API) ======
-async function carregarMinhas() {
-  if (!session) return;
-
-  if (API_URL) {
-    const j = await apiGet(`action=minhas&matricula=${encodeURIComponent(session.matricula)}`);
-    if (!j.ok) {
-      alert("Erro ao carregar suas escolhas: " + (j.error || "erro"));
-      return;
-    }
-    minhas = j.itens || [];
-  }
-
-  renderMinhas();
-
-  // Atualiza lista de vagas (para desativar botões de datas já escolhidas)
-  if (dadosMes?.itens) renderVagas(dadosMes.itens);
-}
+$("btnMinhas").addEventListener("click", carregarMinhas);
 
 // ====== ESCOLHER VAGA ======
 async function escolherVaga(v) {
@@ -222,53 +181,33 @@ async function escolherVaga(v) {
 
   const obs = prompt("Observação (opcional):") || "";
 
-  // envia para planilha (se tiver API)
-  if (API_URL) {
-    const j = await apiPost({
-      action: "escolher",
-      matricula: session.matricula,
-      data: v.data,
-      ala_servico: v.ala_servico,
-      ala_sobreaviso: v.ala_sobreaviso,
-      cobre_ala: v.cobre_ala,
-      obs,
-    });
-
-    if (!j.ok) {
-      alert("Não salvou na planilha: " + (j.error || "erro desconhecido"));
-      return;
-    }
-  }
-
-  // atualiza local (depois do ok)
-  minhas.push({
+  const j = await apiPost({
+    action: "escolher",
+    matricula: session.matricula,
     data: v.data,
     ala_servico: v.ala_servico,
     ala_sobreaviso: v.ala_sobreaviso,
     cobre_ala: v.cobre_ala,
-    status: "PENDENTE",
     obs,
   });
 
-  renderMinhas();
-  if (dadosMes?.itens) renderVagas(dadosMes.itens);
+  if (!j.ok) {
+    alert("Não salvou na planilha: " + (j.error || "erro desconhecido"));
+    return;
+  }
 
   alert("Escolha registrada na planilha!");
+  await carregarMinhas();
 }
 
-// ====== EXPORTAR MINHAS ESCOLHAS ======
+// ====== EXPORTAR ======
 $("btnExportar").addEventListener("click", () => {
   if (!minhas || minhas.length === 0) return alert("Sem escolhas para exportar.");
 
-  // XLSX está no index.html (CDN)
   const ws = XLSX.utils.json_to_sheet(sortPorData(minhas));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "MinhasEscolhas");
 
   const mat = session?.matricula || "usuario";
   XLSX.writeFile(wb, `minhas_escolhas_${mat}.xlsx`);
-});
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "MinhasEscolhas");
-  XLSX.writeFile(wb, `minhas_escolhas_${session?.matricula || "usuario"}.xlsx`);
 });
