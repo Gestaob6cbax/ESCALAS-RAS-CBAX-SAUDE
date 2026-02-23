@@ -1,1 +1,69 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Escala RAS - Vagas de Sobreaviso</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Biblioteca para gerar Excel no navegador -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Escala RAS — Vagas de Sobreaviso</h1>
+    <p class="muted">Login por matrícula + PIN. Selecione vagas e envie.</p>
+  </header>
 
+  <main>
+    <section class="card" id="loginCard">
+      <h2>Entrar</h2>
+      <div class="grid2">
+        <label>
+          Matrícula
+          <input id="matricula" inputmode="numeric" placeholder="Ex: 42871" />
+        </label>
+        <label>
+          PIN
+          <input id="pin" inputmode="numeric" placeholder="****" />
+        </label>
+      </div>
+      <button id="btnLogin">Entrar</button>
+      <p class="muted small" id="loginMsg"></p>
+    </section>
+
+    <section class="card hidden" id="appCard">
+      <div class="row">
+        <h2 id="welcome"></h2>
+        <button class="secondary" id="btnSair">Sair</button>
+      </div>
+
+      <div class="row wrap">
+        <button id="btnCarregar">Carregar vagas</button>
+        <button class="secondary" id="btnMinhas">Minhas escolhas</button>
+        <button class="secondary" id="btnExportar">Exportar minhas escolhas (Excel)</button>
+      </div>
+
+      <p class="muted small" id="status"></p>
+
+      <h3>Vagas abertas</h3>
+      <div id="listaVagas" class="list"></div>
+
+      <h3 class="mt">Minhas escolhas</h3>
+      <div id="listaMinhas" class="list"></div>
+    </section>
+
+    <section class="card">
+      <h2>Admin</h2>
+      <p class="muted">
+        Para exportar todas as escolhas, use a planilha (Google Sheets) ligada ao sistema.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <p class="muted small">v1 — GitHub Pages + Planilha</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
