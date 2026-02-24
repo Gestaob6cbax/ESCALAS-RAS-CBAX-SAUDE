@@ -12,7 +12,9 @@ let minhas = [];
 // ====== HELPERS ======
 const $ = (id) => document.getElementById(id);
 
-function setMsg(el, msg) { el.textContent = msg || ""; }
+function setMsg(el, msg) {
+  el.textContent = msg || "";
+}
 
 function isVaga(item) {
   return String(item.status_sobreaviso || "").trim().toUpperCase() === "VAGA";
@@ -24,7 +26,7 @@ function sortPorData(arr) {
 
 function jaEscolheuData(dataISO) {
   const d = String(dataISO || "").trim();
-  return minhas.some(e => String(e.data || "").trim() === d);
+  return minhas.some((e) => String(e.data || "").trim() === d);
 }
 
 async function apiGet(qs) {
@@ -32,10 +34,11 @@ async function apiGet(qs) {
   return await r.json();
 }
 
+// ✅ CORREÇÃO CORS: POST como text/plain (simple request, sem preflight)
 async function apiPost(obj) {
   const r = await fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(obj),
   });
 
@@ -54,7 +57,8 @@ function renderVagas(lista) {
 
   const vagas = (lista || []).filter(isVaga);
   if (vagas.length === 0) {
-    root.innerHTML = `<div class="item"><h4>Sem vagas</h4><p class="muted small">Nenhuma vaga disponível no período.</p></div>`;
+    root.innerHTML =
+      `<div class="item"><h4>Sem vagas</h4><p class="muted small">Nenhuma vaga disponível no período.</p></div>`;
     return;
   }
 
@@ -81,7 +85,8 @@ function renderMinhas() {
   root.innerHTML = "";
 
   if (!minhas || minhas.length === 0) {
-    root.innerHTML = `<div class="item"><h4>Nenhuma escolha</h4><p class="muted small">Você ainda não selecionou vaga.</p></div>`;
+    root.innerHTML =
+      `<div class="item"><h4>Nenhuma escolha</h4><p class="muted small">Você ainda não selecionou vaga.</p></div>`;
     return;
   }
 
@@ -114,12 +119,18 @@ async function carregarMes() {
 
 async function carregarMinhas() {
   if (!session) return;
+
+  setMsg($("status"), "Carregando suas escolhas da planilha...");
   const j = await apiGet(`action=minhas&matricula=${encodeURIComponent(session.matricula)}`);
+
   if (!j.ok) {
+    setMsg($("status"), "");
     alert("Erro ao carregar suas escolhas: " + (j.error || "erro"));
     return;
   }
+
   minhas = j.itens || [];
+  setMsg($("status"), "");
   renderMinhas();
   if (dadosMes?.itens) renderVagas(dadosMes.itens);
 }
@@ -132,9 +143,11 @@ $("btnLogin").addEventListener("click", async () => {
   if (!matricula || !pin) return setMsg($("loginMsg"), "Informe matrícula e PIN.");
 
   try {
+    setMsg($("loginMsg"), "Verificando...");
     const j = await apiGet(
       `action=login&matricula=${encodeURIComponent(matricula)}&pin=${encodeURIComponent(pin)}`
     );
+
     if (!j.ok) return setMsg($("loginMsg"), j.error || "Falha no login.");
 
     session = { matricula, nome: j.nome || matricula, perfil: j.perfil || "MILITAR" };
@@ -142,9 +155,9 @@ $("btnLogin").addEventListener("click", async () => {
     $("loginCard").classList.add("hidden");
     $("appCard").classList.remove("hidden");
     $("welcome").textContent = `Bem-vindo(a), ${session.nome} (${session.matricula})`;
-    setMsg($("loginMsg"), "");
 
-    await carregarMinhas(); // já puxa as escolhas da planilha
+    setMsg($("loginMsg"), "");
+    await carregarMinhas();
   } catch (e) {
     setMsg($("loginMsg"), "Erro ao conectar no servidor. Tente novamente.");
   }
@@ -160,6 +173,7 @@ $("btnSair").addEventListener("click", () => {
   $("loginCard").classList.remove("hidden");
   $("matricula").value = "";
   $("pin").value = "";
+
   $("listaVagas").innerHTML = "";
   $("listaMinhas").innerHTML = "";
   setMsg($("status"), "");
@@ -181,6 +195,7 @@ async function escolherVaga(v) {
 
   const obs = prompt("Observação (opcional):") || "";
 
+  setMsg($("status"), "Enviando escolha para a planilha...");
   const j = await apiPost({
     action: "escolher",
     matricula: session.matricula,
@@ -192,10 +207,12 @@ async function escolherVaga(v) {
   });
 
   if (!j.ok) {
+    setMsg($("status"), "");
     alert("Não salvou na planilha: " + (j.error || "erro desconhecido"));
     return;
   }
 
+  setMsg($("status"), "");
   alert("Escolha registrada na planilha!");
   await carregarMinhas();
 }
