@@ -184,7 +184,7 @@ $("btnSair").addEventListener("click", () => {
 $("btnCarregar").addEventListener("click", carregarMes);
 $("btnMinhas").addEventListener("click", carregarMinhas);
 
-// ====== ESCOLHER VAGA ======
+// ====== ESCOLHER VAGA (SEM OBSERVAÇÃO) ======
 async function escolherVaga(v) {
   if (!session) return;
 
@@ -193,7 +193,8 @@ async function escolherVaga(v) {
     return;
   }
 
-  const obs = prompt("Observação (opcional):") || "";
+  // ✅ Sem prompt: observação vazia
+  const obs = "";
 
   setMsg($("status"), "Enviando escolha para a planilha...");
   const j = await apiPost({
